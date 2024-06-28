@@ -2,8 +2,11 @@ from django.shortcuts import render,redirect
 from django.contrib import messages
 from django.contrib.auth.models import User,auth
 from .models import *
+from django.contrib.auth.decorators import login_required
+
 
 # Create your views here.
+@login_required(login_url='signin')    #redirects the user to log in page if the user is not logged in
 def index(request):
     return render(request,'index.html')
 
@@ -25,9 +28,14 @@ def signup(request):
             else:
                 user=User.objects.create_user(username=username,email=email,password=password)  #creates a user if all conditions are satisfied
                 user.save();
+
+                #log the user in after signup so that user can be redirected to settings page
+                user_login = auth.authenticate(username=username,password=password)
+                auth.login(request,user_login)
+
                 new_profile = Profile.objects.create(user=user, id_user=user.id)   #simultaneously creates a profile object
                 new_profile.save();
-                return redirect('signin')
+                return redirect('settings')
         else:
             messages.info(request,'password is not same')
             return redirect('signup')
@@ -49,7 +57,36 @@ def signin(request):
             return redirect('signin')
     else:
         return render(request,'signin.html')
-    
+
+@login_required(login_url='signin')     
 def logout(request):
     auth.logout(request)
     return redirect('/')
+
+@login_required(login_url='signin')   
+def settings(request):
+    user_profile = Profile.objects.get(user=request.user)
+
+    if request.method=='POST':
+
+        if request.FILES.get('image')==None:
+            image= user_profile.profileimg
+            bio = request.POST['bio']
+            location = request.POST['location']
+
+            user_profile.profileimg = image
+            user_profile.bio = bio
+            user_profile.location = location
+            user_profile.save()
+        if request.FILES.get('image')!= None:
+            image= request.FILES.get('image')
+            bio = request.POST['bio']
+            location = request.POST['location']
+
+            user_profile.profileimg = image
+            user_profile.bio = bio
+            user_profile.location = location
+            user_profile.save()
+        return redirect('settings')
+        
+    return render(request,'setting.html',{'user_profile':user_profile})
