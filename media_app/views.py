@@ -13,6 +13,10 @@ def index(request):
     posts = Post.objects.all()
     return render(request,'index.html',{'user_profile':user_profile,'posts':posts})
 
+@login_required(login_url='signin')
+def likepost(request):
+    pass
+
 def signup(request):
     if request.method=='POST':
         username=request.POST['username']
