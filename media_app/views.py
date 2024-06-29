@@ -9,7 +9,9 @@ from django.contrib.auth.decorators import login_required
 @login_required(login_url='signin')    #redirects the user to log in page if the user is not logged in
 def index(request):
     user_profile = Profile.objects.get(user=request.user)
-    return render(request,'index.html',{'user_profile':user_profile})
+
+    posts = Post.objects.all()
+    return render(request,'index.html',{'user_profile':user_profile,'posts':posts})
 
 def signup(request):
     if request.method=='POST':
