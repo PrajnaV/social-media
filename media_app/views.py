@@ -15,7 +15,27 @@ def index(request):
 
 @login_required(login_url='signin')
 def likepost(request):
-    pass
+    username = request.user.username
+    post_id = request.GET.get('post_id')
+
+    post = Post.objects.get(id=post_id)
+
+    #to check whether the user has already liked the particular post
+    like_filter = LikePost.objects.filter(post_id=post_id,username=username).first()
+
+    #if user has liked the post
+    if like_filter == None:
+        new_like = LikePost.objects.create(post_id=post_id,username=username)
+        new_like.save()
+        post.no_of_likes = post.no_of_likes +1  #increments no of likes 
+        post.save()
+        return redirect('/')
+    else:                               #if user unlikes the post i.e if he has already liked it
+        like_filter.delete()
+        post.no_of_likes = post.no_of_likes -1
+        post.save()
+        return redirect('/')
+
 
 def signup(request):
     if request.method=='POST':
