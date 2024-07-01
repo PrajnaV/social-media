@@ -36,6 +36,52 @@ def likepost(request):
         post.save()
         return redirect('/')
 
+@login_required(login_url='signin')
+def profile(request,username):
+    user_object = User.objects.get(username=username)
+    user_profile = Profile.objects.get(user=user_object)
+    user_posts = Post.objects.filter(user=username)
+    no_of_posts = len(user_posts)
+
+    follower = request.user.username
+    user=username
+
+    #to change the button text to follow or unfollow depending on whether user is already following or not
+    if FollowersCount.objects.filter(follower=follower,user=user).first():
+        button_text='Unfollow'
+    else:
+        button_text='Follow'
+    user_following = len(FollowersCount.objects.filter(follower=username))
+    user_followers = len(FollowersCount.objects.filter(user=username))
+
+    context = {
+        'user_object':user_object,
+        'user_profile':user_profile,
+        'user_posts':user_posts,
+        'no_of_posts':no_of_posts,
+        'button_text':button_text,
+        'user_following':user_following,
+        'user_followers':user_followers
+    }
+    return render(request,'profile.html',context)
+
+@login_required(login_url='signin')
+def follow(request):
+    if request.method == 'POST':
+        follower = request.POST['follower']
+        user = request.POST['user']
+
+        #to check whether the follower is already following the user
+        if FollowersCount.objects.filter(follower=follower,user=user).first():
+            delete_follower = FollowersCount.objects.get(follower=follower,user=user)
+            delete_follower.delete()
+            return redirect('/profile/'+user)
+        else:
+            new_follower = FollowersCount.objects.create(follower=follower,user=user)
+            new_follower.save()
+            return redirect('/profile/'+user)
+    else:
+        return redirect('/')
 
 def signup(request):
     if request.method=='POST':
