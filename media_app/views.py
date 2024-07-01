@@ -9,9 +9,21 @@ from django.contrib.auth.decorators import login_required
 @login_required(login_url='signin')    #redirects the user to log in page if the user is not logged in
 def index(request):
     user_profile = Profile.objects.get(user=request.user)
+    #to customize the post feed so that user can see only posts of users he is following
+    user_following_list = []
+    feed_lists = Post.objects.none()  #initialize with empty queryset
 
-    posts = Post.objects.all()
-    return render(request,'index.html',{'user_profile':user_profile,'posts':posts})
+    user_following = FollowersCount.objects.filter(follower=request.user.username)
+
+    for users in user_following:
+        user_following_list.append(users.user)
+
+
+    for usernames in user_following_list:
+        feed_lists = Post.objects.filter(user=usernames)
+    
+    #posts = Post.objects.all()
+    return render(request,'index.html',{'user_profile':user_profile,'posts':feed_lists})
 
 @login_required(login_url='signin')
 def likepost(request):
