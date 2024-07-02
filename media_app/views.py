@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User,auth
 from .models import *
 from django.contrib.auth.decorators import login_required
-
+import random
 
 # Create your views here.
 @login_required(login_url='signin')    #redirects the user to log in page if the user is not logged in
@@ -11,7 +11,7 @@ def index(request):
     user_profile = Profile.objects.get(user=request.user)
     #to customize the post feed so that user can see only posts of users he is following
     user_following_list = []
-    feed_lists = Post.objects.none()  #initialize with empty queryset
+    
 
     user_following = FollowersCount.objects.filter(follower=request.user.username)
 
@@ -19,11 +19,24 @@ def index(request):
         user_following_list.append(users.user)
 
 
-    for usernames in user_following_list:
-        feed_lists = Post.objects.filter(user=usernames)
     
-    #posts = Post.objects.all()
-    return render(request,'index.html',{'user_profile':user_profile,'posts':feed_lists})
+    feed_lists = Post.objects.filter(user__in=user_following_list)
+
+    #random user suggestions
+    all_users = User.objects.exclude(username=request.user.username)  #get all the users except current user
+    user_already_follows = User.objects.filter(username__in=user_following_list)
+    already_following_list =[]
+    for users in user_already_follows:
+        already_following_list.append(users.username)
+
+    new_suggestion_list = all_users.exclude(username__in=already_following_list)
+
+    final_suggestion_list = list(new_suggestion_list)
+    random.shuffle(final_suggestion_list)     #to display random user suggestion each time the page is reloaded
+
+    final_profile_suggestions = Profile.objects.filter(user__in=final_suggestion_list)[:4]
+    
+    return render(request,'index.html',{'user_profile':user_profile,'posts':feed_lists,'final_profile_suggestions':final_profile_suggestions})
 
 @login_required(login_url='signin')
 def likepost(request):
@@ -52,19 +65,19 @@ def likepost(request):
 def search(request):
     user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user = user_object)
+    username_profile_list = []
 
     if request.method == 'POST':
         username = request.POST['username']
         username_object = User.objects.filter(username__icontains=username)  #This query performs a case-insensitive search for substrings within the username field.
 
         username_profile =[]
-        username_profile_list = Profile.objects.none()
+        
 
         for users in username_object:
             username_profile.append(users.id)
 
-        for ids in username_profile:
-            username_profile_list = Profile.objects.filter(id_user=ids)
+        username_profile_list = Profile.objects.filter(id_user__in=username_profile)
 
     return render(request,'search.html',{'user_profile': user_profile,'username_profile_list':username_profile_list})
 
